@@ -7,7 +7,7 @@ set -e
 trap 'echo "ERRO na linha $LINENO. Veja o log: $LOG_FILE"' ERR
 
 KERNEL_VERSION="7.2.4"
-KERNEL_DIR="/home/eichlerjr/kernel-dev/linux-${KERNEL_VERSION}"
+KERNEL_DIR="/home/etl-bi/kernel-dev/linux-${KERNEL_VERSION}"
 LOG_FILE="build-${KERNEL_VERSION}-$(date +%Y%m%d-%H%M%S).log"
 JOBS=$(nproc)
 
@@ -127,8 +127,8 @@ make bindeb-pkg -j$JOBS 2>&1 | tee -a "$LOG_FILE"
 
 echo "============================================" | tee -a "$LOG_FILE"
 echo "KERNEL ${KERNEL_VERSION} COMPILADO E INSTALADO!" | tee -a "$LOG_FILE"
-echo "Pacotes .deb gerados em: /home/eichlerjr/kernel-dev/" | tee -a "$LOG_FILE"
+echo "Pacotes .deb gerados em: /home/etl-bi/kernel-dev/" | tee -a "$LOG_FILE"
 echo "Para instalar, execute:" | tee -a "$LOG_FILE"
-echo "sudo dpkg -i /home/eichlerjr/kernel-dev/linux-*.deb" | tee -a "$LOG_FILE"
+echo "sudo dpkg -i /home/etl-bi/kernel-dev/linux-*.deb" | tee -a "$LOG_FILE"
 echo "Depois reinicie e selecione o novo kernel no GRUB." | tee -a "$LOG_FILE"
 date | tee -a "$LOG_FILE"
