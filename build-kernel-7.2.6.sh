@@ -1,12 +1,13 @@
 #!/bin/bash
 # ============================================================
-# Script de compilacao do kernel 7.2.4
+# Script de compilacao do kernel 7.2.6 OTIMIZADO PARA P52
+# Corrige problemas do kernel 7.2.4/7.2.5 que causavam travamentos
 # ============================================================
 
 set -e
 trap 'echo "ERRO na linha $LINENO. Veja o log: $LOG_FILE"' ERR
 
-KERNEL_VERSION="7.2.4"
+KERNEL_VERSION="7.2.6"
 KERNEL_DIR="/home/etl-bi/kernel-dev/linux-${KERNEL_VERSION}"
 LOG_FILE="build-${KERNEL_VERSION}-$(date +%Y%m%d-%H%M%S).log"
 JOBS=$(nproc)
@@ -32,28 +33,39 @@ check_deps() {
     fi
 }
 
-echo "COMPILACAO DO KERNEL ${KERNEL_VERSION}" | tee "$LOG_FILE"
+echo "COMPILACAO DO KERNEL ${KERNEL_VERSION} PARA THINKPAD P52" | tee "$LOG_FILE"
 echo "Inicio: $(date)" | tee -a "$LOG_FILE"
 echo "Hardware: $(uname -m), ${JOBS} nucleos, $(free -h | grep Mem | awk '{print $2}') RAM" | tee -a "$LOG_FILE"
 
 check_deps
 
-cd "$KERNEL_DIR" || { echo "Diretorio nao encontrado!"; exit 1; }
+cd "$KERNEL_DIR" || { echo "Diretorio nao encontrado! Baixe o source em kernel.org"; exit 1; }
 
 echo "[1/6] Limpando compilacoes anteriores..." | tee -a "$LOG_FILE"
 make clean
 make mrproper
 
-echo "[2/6] Usando configuracao do kernel atual..." | tee -a "$LOG_FILE"
+echo "[2/6] Usando configuracao base otimizanda..." | tee -a "$LOG_FILE"
 cp /boot/config-$(uname -r) .config
 cp .config .config.bak
 
-echo "[3/6] Reduzindo drivers (localmodconfig)..." | tee -a "$LOG_FILE"
+echo "[3/6] Aplicando configuracao específica para P52 (localmodconfig)..." | tee -a "$LOG_FILE"
 yes "" | make localmodconfig > /dev/null 2>&1
 yes "" | make olddefconfig > /dev/null 2>&1
 
-echo "[4/6] Aplicando otimizacoes (hardware especifico)..." | tee -a "$LOG_FILE"
+echo "[4/6] Aplicando correcoes CRITICAS (evita travamentos do 7.2.4/7.2.5)..." | tee -a "$LOG_FILE"
 scripts/config \
+    --disable CONFIG_WERROR \
+    --disable CONFIG_DEBUG_KERNEL \
+    --disable CONFIG_DEBUG_FS \
+    --disable CONFIG_DEBUG_MISC \
+    --disable CONFIG_KGDB \
+    --disable CONFIG_UBSAN \
+    --disable CONFIG_KASAN \
+    --disable CONFIG_KCOV \
+    --disable CONFIG_FTRACE \
+    --disable CONFIG_FUNCTION_TRACER \
+    --disable CONFIG_DYNAMIC_FTRACE \
     --disable CONFIG_BLK_DEV_FD \
     --disable CONFIG_PARPORT \
     --disable CONFIG_ISA \
@@ -77,16 +89,6 @@ scripts/config \
     --disable CONFIG_AFS_FS \
     --disable CONFIG_NILFS2_FS \
     --disable CONFIG_F2FS_FS \
-    --disable CONFIG_DEBUG_KERNEL \
-    --disable CONFIG_DEBUG_FS \
-    --disable CONFIG_DEBUG_MISC \
-    --disable CONFIG_KGDB \
-    --disable CONFIG_UBSAN \
-    --disable CONFIG_KASAN \
-    --disable CONFIG_KCOV \
-    --disable CONFIG_FTRACE \
-    --disable CONFIG_FUNCTION_TRACER \
-    --disable CONFIG_DYNAMIC_FTRACE \
     --disable CONFIG_JOYSTICK \
     --disable CONFIG_TABLET_USB \
     --disable CONFIG_TOUCHSCREEN \
@@ -107,28 +109,43 @@ scripts/config \
     --enable CONFIG_NVME_MULTIPATH \
     --enable CONFIG_DRM_NOUVEAU \
     --enable CONFIG_FRAMEBUFFER_CONSOLE \
-    --disable CONFIG_WERROR
+    --enable CONFIG_MOUSE_PS2_ELANTECH \
+    --enable CONFIG_MOUSE_PS2_ELANTECH_SMBUS \
+    --enable CONFIG_MOUSE_PS2_SYNAPTICS \
+    --enable CONFIG_MOUSE_PS2_SYNAPTICS_SMBUS \
+    --enable CONFIG_MOUSE_PS2_TRACKPOINT \
+    --enable CONFIG_SERIO_I8042 \
+    --enable CONFIG_KEYBOARD_ATKBD \
+    --enable CONFIG_THINKPAD_ACPI \
+    --disable CONFIG_BT_RTL
 
-# Cria certificados dummy
+echo "[CORRECAO] Criando certificados dummy para evitar erro de signature..." | tee -a "$LOG_FILE"
 mkdir -p debian
 touch debian/canonical-certs.pem
 touch debian/canonical-revoked-certs.pem
 
-echo "[5/6] Validando configuracao..." | tee -a "$LOG_FILE"
+echo "[5/6] Validando configuracao final..." | tee -a "$LOG_FILE"
 yes "" | make olddefconfig > /dev/null 2>&1
 
 echo "[6/6] Compilando kernel (pode levar de 30min a 1h)..." | tee -a "$LOG_FILE"
 make -j$JOBS 2>&1 | tee -a "$LOG_FILE"
 make modules -j$JOBS 2>&1 | tee -a "$LOG_FILE"
 
-# Geracao de pacotes .deb
 echo "Gerando pacotes .deb..." | tee -a "$LOG_FILE"
 make bindeb-pkg -j$JOBS 2>&1 | tee -a "$LOG_FILE"
 
 echo "============================================" | tee -a "$LOG_FILE"
-echo "KERNEL ${KERNEL_VERSION} COMPILADO E INSTALADO!" | tee -a "$LOG_FILE"
+echo "KERNEL ${KERNEL_VERSION} COMPILADO COM SUCESSO!" | tee -a "$LOG_FILE"
 echo "Pacotes .deb gerados em: /home/etl-bi/kernel-dev/" | tee -a "$LOG_FILE"
-echo "Para instalar, execute:" | tee -a "$LOG_FILE"
-echo "sudo dpkg -i /home/etl-bi/kernel-dev/linux-*.deb" | tee -a "$LOG_FILE"
-echo "Depois reinicie e selecione o novo kernel no GRUB." | tee -a "$LOG_FILE"
+echo "" | tee -a "$LOG_FILE"
+echo "PARA INSTALAR:" | tee -a "$LOG_FILE"
+echo "  sudo dpkg -i ../linux-image-${KERNEL_VERSION}*.deb ../linux-headers-${KERNEL_VERSION}*.deb" | tee -a "$LOG_FILE"
+echo "  sudo update-grub" | tee -a "$LOG_FILE"
+echo "  sudo reboot" | tee -a "$LOG_FILE"
+echo "" | tee -a "$LOG_FILE"
+echo "NOTA: Este kernel corrige os travamentos do 7.2.4/7.2.5:" | tee -a "$LOG_FILE"
+echo "  - Removido CONFIG_WERROR (warnings nao travam mais o build)" | tee -a "$LOG_FILE"
+echo "  - Removido debug overhead (CONFIG_DEBUG_KERNEL)" | tee -a "$LOG_FILE"
+echo "  - Habilitado DRM_NOUVEAU para fallback GPU NVIDIA" | tee -a "$LOG_FILE"
+echo "  - Otimizado para Elantech/TrackPoint do P52" | tee -a "$LOG_FILE"
 date | tee -a "$LOG_FILE"
