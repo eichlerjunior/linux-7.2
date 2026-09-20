@@ -16,3 +16,7 @@ modules.order
 debian/canonical-*.pem
 linux-firmware/
 NVIDIA-*.run
+node_modules/
+.next/
+dist/
+build/
