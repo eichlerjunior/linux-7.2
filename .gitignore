@@ -94,3 +94,4 @@ htmlcov/
 node_modules/
 target/
 .gradle/.next/
+.next/
