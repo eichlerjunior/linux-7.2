@@ -1,0 +1,14 @@
+=== HARDWARE FUNCIONANDO NO KERNEL 7.1.5 ===
+✅ GPU Intel UHD 630
+✅ Áudio Intel HDA (ALC285)
+✅ Rede Ethernet I219-LM
+✅ WiFi Intel 9460/9560
+✅ Bluetooth Intel
+✅ Touchpad Elantech
+✅ Câmera Chicony 720p
+✅ Fingerprint Synaptics
+✅ NVMe Kingston 4TB
+✅ SATA Seagate 2TB
+✅ Thunderbolt
+❌ TrackPoint (não detectado)
+⚠️  Teclado (layout US, não ABNT2)
