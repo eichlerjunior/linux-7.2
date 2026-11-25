@@ -1,0 +1,4 @@
+[org/gnome/desktop/interface]
+gtk-theme='Arc'
+icon-theme='Moka'
+cursor-theme='Adwaita'
